@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vioxis — Business Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0E0F14;
+  --surface: #16181F;
+  --surface2: #1E2029;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #F0EEF8;
+  --muted: #8A8899;
+  --accent: #8B7CF6;
+  --accent2: #C4B5FD;
+  --green: #4ADE80;
+  --green-dim: #16A34A;
+  --amber: #FBBF24;
+  --red: #F87171;
+  --blue: #60A5FA;
+  --card-radius: 16px;
+  --input-bg: rgba(255,255,255,0.05);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, #1a1730 0%, #0E0F14 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+}
+.logo {
+  font-family:'DM Serif Display',serif;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #C4B5FD, #818CF8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.logo span { font-style: italic; }
+.header-meta { font-size: 12px; color: var(--muted); }
+.live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* NAV */
+.nav-wrap { padding: 16px 28px 0; border-bottom: 1px solid var(--border); display: flex; gap: 4px; overflow-x: auto; }
+.nav-btn {
+  font-size: 13px; font-weight: 500; padding: 10px 18px;
+  border: none; background: transparent; color: var(--muted);
+  cursor: pointer; border-radius: 8px 8px 0 0; white-space: nowrap;
+  transition: all 0.2s; position: relative;
+}
+.nav-btn.active { color: var(--accent2); background: rgba(139,124,246,0.08); }
+.nav-btn.active::after {
+  content: '';position: absolute;bottom: 0;left: 0;right: 0;
+  height: 2px;background: var(--accent);border-radius: 2px 2px 0 0;
+}
+.nav-btn:hover:not(.active){ color: var(--text); background: rgba(255,255,255,0.04); }
+
+/* MAIN */
+.main { padding: 28px; max-width: 1200px; }
+.page { display: none; animation: fadeIn 0.3s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* SECTION LABEL */
+.section-label { font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+
+/* METRIC CARDS */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 12px; margin-bottom: 28px; }
+.m-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 18px 16px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.m-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+.m-card::before {
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background: linear-gradient(90deg, var(--glow-a, var(--accent)), var(--glow-b, var(--accent2)));
+  opacity: 0.6;
+}
+.m-card.green { --glow-a: #4ADE80; --glow-b: #86EFAC; }
+.m-card.amber { --glow-a: #FBBF24; --glow-b: #FDE68A; }
+.m-card.red { --glow-a: #F87171; --glow-b: #FECACA; }
+.m-card.blue { --glow-a: #60A5FA; --glow-b: #BAE6FD; }
+.m-label { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 400; }
+.m-value { font-size: 22px; font-weight: 600; color: var(--text); line-height: 1; }
+.m-value.green { color: var(--green); }
+.m-value.amber { color: var(--amber); }
+.m-value.accent { color: var(--accent2); }
+.m-value.red { color: var(--red); }
+.m-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 22px;
+  margin-bottom: 20px;
+}
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 18px; display:flex;align-items:center;gap:8px; }
+.card-title .icon { font-size: 16px; }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+@media(max-width:768px){.grid-2{grid-template-columns:1fr;}.grid-3{grid-template-columns:1fr;}}
+
+/* CHART */
+.chart-wrap { position:relative;width:100%;height:260px; }
+
+/* INPUTS */
+.input-field {
+  background: var(--input-bg);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139,124,246,0.15);
+}
+.input-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+.input-group { margin-bottom: 12px; }
+
+/* EDITABLE SETTINGS PANEL */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; }
+.settings-section {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 18px;
+}
+.settings-section-title {
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--accent2); margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.apply-btn {
+  background: linear-gradient(135deg, #7C3AED, #8B7CF6);
+  color: white; border: none; border-radius: 10px;
+  padding: 12px 28px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s; box-shadow: 0 4px 15px rgba(124,58,237,0.3);
+  display: flex; align-items: center; gap: 8px;
+}
+.apply-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.4); }
+.apply-btn:active { transform: translateY(0); }
+
+/* SKU CARDS */
+.sku-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px; }
+.sku-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 20px;
+  transition: border-color 0.2s;
+}
+.sku-card:hover { border-color: var(--border2); }
+.sku-name {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  padding-bottom: 12px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.sku-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 9px;
+  border-radius: 20px; background: rgba(139,124,246,0.15); color: var(--accent2);
+}
+.cost-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cost-line:last-of-type { border-bottom: none; }
+.cost-key { color: var(--muted); }
+.cost-val { font-weight: 500; color: var(--text); }
+.cost-total {
+  display: flex; justify-content: space-between; padding: 10px 0 6px;
+  margin-top: 4px; border-top: 1px solid var(--border2); font-size: 13px; font-weight: 600;
+}
+.cost-total .val { color: var(--accent2); }
+.profit-section { margin-top: 12px; background: rgba(74,222,128,0.06); border-radius: 10px; padding: 12px; }
+.profit-line { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+.profit-line:last-child { margin-bottom: 0; font-weight: 600; font-size: 13px; }
+.profit-line .green { color: var(--green); }
+.margin-bar-wrap { margin-top: 10px; }
+.margin-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.margin-fill { height: 5px; border-radius: 3px; background: linear-gradient(90deg, #4ADE80, #86EFAC); transition: width 0.5s ease; }
+.margin-text { font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+/* TABLE */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--muted);
+  padding: 8px 12px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text); vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table .total-row td { font-weight: 600; background: rgba(139,124,246,0.06); }
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* HIGHLIGHT BOX */
+.highlight-box {
+  background: linear-gradient(135deg, rgba(139,124,246,0.12), rgba(99,102,241,0.06));
+  border: 1px solid rgba(139,124,246,0.3);
+  border-radius: var(--card-radius);
+  padding: 20px 24px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px;
+}
+.hl-label { font-size: 13px; color: var(--accent2); }
+.hl-val { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--text); }
+
+/* PILL */
+.pill {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px;
+}
+.pill-green { background: rgba(74,222,128,0.12); color: var(--green); }
+.pill-red { background: rgba(248,113,113,0.12); color: var(--red); }
+.pill-amber { background: rgba(251,191,36,0.12); color: var(--amber); }
+.pill-blue { background: rgba(96,165,250,0.12); color: var(--blue); }
+.pill-purple { background: rgba(139,124,246,0.12); color: var(--accent2); }
+
+/* SCENARIO TOGGLE */
+.scenario-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+.s-tab {
+  font-size: 12px; font-weight: 500; padding: 6px 16px;
+  border-radius: 8px; border: 1px solid var(--border2);
+  background: transparent; color: var(--muted); cursor: pointer;
+  transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+}
+.s-tab.active { background: rgba(139,124,246,0.15); color: var(--accent2); border-color: rgba(139,124,246,0.4); }
+
+/* AD COST NOTE */
+.ad-notice {
+  background: rgba(251,191,36,0.07);
+  border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 12px; color: var(--amber);
+  margin-bottom: 20px; line-height: 1.6;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(139,124,246,0.3); border-radius: 3px; }
+
+/* RESPONSIVE FIX */
+@media(max-width:600px){
+  .main{padding:16px;}
+  .header{padding:14px 16px;}
+  .hl-val{font-size:20px;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Vioxis <span>Wallets</span></div>
+    <div class="header-meta" style="margin-top:4px;"><span class="live-dot"></span>Business Intelligence Dashboard</div>
+  </div>
+  <div style="text-align:right;font-size:12px;color:var(--muted);">
+    <div id="header-rev" style="font-size:16px;font-weight:600;color:var(--green);">—</div>
+    <div>Projected Revenue</div>
+  </div>
+</div>
+
+<div class="nav-wrap">
+  <button class="nav-btn active" onclick="showPage('overview',this)">📊 Overview</button>
+  <button class="nav-btn" onclick="showPage('sku',this)">📦 SKU Breakdown</button>
+  <button class="nav-btn" onclick="showPage('summary',this)">📋 Summary Table</button>
+  <button class="nav-btn" onclick="showPage('projection',this)">📈 Projections</button>
+  <button class="nav-btn" onclick="showPage('settings',this)">⚙️ Edit Numbers</button>
+</div>
+
+<div class="main">
+
+<!-- ══ OVERVIEW ══ -->
+<div id="page-overview" class="page active">
+  <div class="section-label">Business Overview</div>
+
+  <div class="highlight-box">
+    <div>
+      <div class="hl-label">Total Net Profit (with ads)</div>
+      <div class="hl-val" id="ov-net-profit">—</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="hl-label" style="margin-bottom:6px;">Net Margin</div>
+      <span class="pill pill-green" id="ov-net-margin" style="font-size:14px;padding:5px 14px;">—</span>
+    </div>
+  </div>
+
+  <div class="metrics" id="overview-metrics"></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="icon">📊</span> Investment vs Revenue vs Profit</div>
+      <div class="chart-wrap"><canvas id="overviewChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🥧</span> Cost Breakdown</div>
+      <div class="chart-wrap"><canvas id="costChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">💡</span> Profit per SKU Comparison</div>
+    <div class="chart-wrap" style="height:200px;"><canvas id="profitPerSkuChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ SKU BREAKDOWN ══ -->
+<div id="page-sku" class="page">
+  <div class="section-label">Per-SKU Cost & Profit Analysis</div>
+  <div id="ad-notice" class="ad-notice"></div>
+  <div class="sku-grid" id="sku-cards"></div>
+
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title"><span class="icon">📊</span> Stacked Cost per Unit</div>
+    <div class="chart-wrap"><canvas id="stackedChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ SUMMARY TABLE ══ -->
+<div id="page-summary" class="page">
+  <div class="section-label">Full Cost & Revenue Summary</div>
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span> Detailed Summary</div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="summary-table">
+        <thead>
+          <tr>
+            <th>SKU</th><th>Units</th><th>Prod. Cost/pc</th>
+            <th>Ad Cost/pc</th><th>Other Overhead/pc</th>
+            <th>Total Cost/pc</th><th>Sell Price</th>
+            <th>Profit/pc</th><th>Total Profit</th><th>Margin</th>
+          </tr>
+        </thead>
+        <tbody id="summary-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="grid-2" style="margin-top:0;">
+    <div class="card">
+      <div class="card-title"><span class="icon">💰</span> Revenue Distribution</div>
+      <div class="chart-wrap"><canvas id="revDistChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📈</span> Profit Distribution</div>
+      <div class="chart-wrap"><canvas id="profitDistChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PROJECTIONS ══ -->
+<div id="page-projection" class="page">
+  <div class="section-label">Sales Projections & Break-Even</div>
+
+  <div class="scenario-tabs">
+    <button class="s-tab active" onclick="setScenario('noads',this)">Without Ads</button>
+    <button class="s-tab" onclick="setScenario('withads',this)">With Ads</button>
+  </div>
+
+  <div class="metrics" id="proj-metrics"></div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📈</span> Scenario Comparison</div>
+    <div class="chart-wrap"><canvas id="scenarioChart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">🎯</span> Break-Even Analysis</div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr><th>Units Sold</th><th>Revenue</th><th>Investment</th><th>Profit/Loss</th><th>Status</th></tr>
+        </thead>
+        <tbody id="beTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS ══ -->
+<div id="page-settings" class="page">
+  <div class="section-label">Edit All Numbers</div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title"><span class="icon">📦</span> Units & Quantities</div>
+    <div class="settings-grid">
+      <div class="settings-section">
+        <div class="settings-section-title">Bifold Wallet</div>
+        <div class="input-group"><div class="input-label">Units</div><input class="input-field" id="s-qty-0" type="number" value="60"></div>
+        <div class="input-group"><div class="input-label">Product Cost / pc (৳)</div><input class="input-field" id="s-prod-0" type="number" value="650"></div>
+        <div class="input-group"><div class="input-label">Sell Price (৳)</div><input class="input-field" id="s-sell-0" type="number" value="1900"></div>
+        <div class="input-group"><div class="input-label">Ad Cost / pc (৳)</div><input class="input-field" id="s-ad-0" type="number" value="0" placeholder="e.g. 375"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Trifold Wallet</div>
+        <div class="input-group"><div class="input-label">Units</div><input class="input-field" id="s-qty-1" type="number" value="30"></div>
+        <div class="input-group"><div class="input-label">Product Cost / pc (৳)</div><input class="input-field" id="s-prod-1" type="number" value="750"></div>
+        <div class="input-group"><div class="input-label">Sell Price (৳)</div><input class="input-field" id="s-sell-1" type="number" value="2100"></div>
+        <div class="input-group"><div class="input-label">Ad Cost / pc (৳)</div><input class="input-field" id="s-ad-1" type="number" value="0" placeholder="e.g. 375"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Long Wallet</div>
+        <div class="input-group"><div class="input-label">Units</div><input class="input-field" id="s-qty-2" type="number" value="30"></div>
+        <div class="input-group"><div class="input-label">Product Cost / pc (৳)</div><input class="input-field" id="s-prod-2" type="number" value="800"></div>
+        <div class="input-group"><div class="input-label">Sell Price (৳)</div><input class="input-field" id="s-sell-2" type="number" value="2300"></div>
+        <div class="input-group"><div class="input-label">Ad Cost / pc (৳)</div><input class="input-field" id="s-ad-2" type="number" value="0" placeholder="e.g. 375"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title"><span class="icon">💸</span> Shared Overhead Costs</div>
+    <div class="settings-grid">
+      <div class="settings-section">
+        <div class="settings-section-title">Content & Media</div>
+        <div class="input-group"><div class="input-label">Total Content Cost (৳)</div><input class="input-field" id="s-content" type="number" value="15000"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Packaging</div>
+        <div class="input-group"><div class="input-label">Total Packaging Cost (৳)</div><input class="input-field" id="s-packaging" type="number" value="10000"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Returns</div>
+        <div class="input-group"><div class="input-label">Total Return Cost (৳)</div><input class="input-field" id="s-returns" type="number" value="3600"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Other Expenses</div>
+        <div class="input-group"><div class="input-label">Total Other Cost (৳)</div><input class="input-field" id="s-other" type="number" value="2000"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:center;margin-top:8px;">
+    <button class="apply-btn" onclick="applySettings()">
+      <span>✓</span> Recalculate Dashboard
+    </button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+/* ───────────────────────── STATE ───────────────────────── */
+let D = {
+  skus: [
+    { name:'Bifold Wallet', qty:60, prod:650, sell:1900, ad:0 },
+    { name:'Trifold Wallet', qty:30, prod:750, sell:2100, ad:0 },
+    { name:'Long Wallet',   qty:30, prod:800, sell:2300, ad:0 },
+  ],
+  overhead: { content:15000, packaging:10000, returns:3600, other:2000 },
+  scenario: 'noads'
+};
+
+let charts = {};
+
+function fmt(n){ return Math.round(n).toLocaleString('en-IN') + ' ৳'; }
+function pct(n){ return Math.round(n) + '%'; }
+
+function compute() {
+  const totalUnits = D.skus.reduce((s,k)=>s+k.qty,0);
+  const totalOverhead = D.overhead.content + D.overhead.packaging + D.overhead.returns + D.overhead.other;
+  const totalAdCost = D.skus.reduce((s,k)=>s+k.ad*k.qty,0);
+
+  return D.skus.map(k => {
+    const share = k.qty / totalUnits;
+    const overheadPc = totalOverhead * share / k.qty;
+    const totalCostNoAd = k.prod + overheadPc;
+    const totalCostWithAd = totalCostNoAd + k.ad;
+    const profitNoAd = k.sell - totalCostNoAd;
+    const profitWithAd = k.sell - totalCostWithAd;
+    const marginNoAd = profitNoAd / k.sell * 100;
+    const marginWithAd = profitWithAd / k.sell * 100;
+    const totalProfitNoAd = profitNoAd * k.qty;
+    const totalProfitWithAd = profitWithAd * k.qty;
+    const investNoAd = (k.prod + overheadPc) * k.qty;
+    const investWithAd = investNoAd + k.ad * k.qty;
+    const revenue = k.sell * k.qty;
+    return { ...k, share, overheadPc, totalCostNoAd, totalCostWithAd,
+      profitNoAd, profitWithAd, marginNoAd, marginWithAd,
+      totalProfitNoAd, totalProfitWithAd, investNoAd, investWithAd, revenue };
+  });
+}
+
+function getAgg(rows, useAds) {
+  const totalRev = rows.reduce((s,r)=>s+r.revenue, 0);
+  const totalInvest = rows.reduce((s,r)=>s+(useAds?r.investWithAd:r.investNoAd), 0);
+  const totalProfit = rows.reduce((s,r)=>s+(useAds?r.totalProfitWithAd:r.totalProfitNoAd), 0);
+  const margin = totalProfit / totalRev * 100;
+  const totalUnits = rows.reduce((s,r)=>s+r.qty, 0);
+  const totalAdSpend = rows.reduce((s,r)=>s+r.ad*r.qty, 0);
+  return { totalRev, totalInvest, totalProfit, margin, totalUnits, totalAdSpend };
+}
+
+/* ───────────────────────── RENDER ───────────────────────── */
+function renderAll() {
+  const rows = compute();
+  const hasAds = rows.some(r=>r.ad>0);
+  const aggWithAds = getAgg(rows, true);
+  const aggNoAds = getAgg(rows, false);
+
+  // Header
+  document.getElementById('header-rev').textContent = fmt(aggWithAds.totalRev);
+
+  renderOverview(rows, aggWithAds, aggNoAds, hasAds);
+  renderSKU(rows, hasAds);
+  renderSummary(rows, aggWithAds);
+  renderProjection(rows, aggWithAds, aggNoAds);
+}
+
+function renderOverview(rows, aggW, aggN, hasAds) {
+  const a = hasAds ? aggW : aggN;
+  document.getElementById('ov-net-profit').textContent = fmt(a.totalProfit);
+  document.getElementById('ov-net-margin').textContent = pct(a.margin);
+
+  const mc = document.getElementById('overview-metrics');
+  const totalUnits = rows.reduce((s,r)=>s+r.qty,0);
+  const totalAdSpend = rows.reduce((s,r)=>s+r.ad*r.qty,0);
+  const ovh = D.overhead.content+D.overhead.packaging+D.overhead.returns+D.overhead.other;
+
+  mc.innerHTML = `
+    <div class="m-card"><div class="m-label">Total Revenue</div><div class="m-value green">${fmt(aggW.totalRev)}</div><div class="m-sub">${totalUnits} units sold</div></div>
+    <div class="m-card blue"><div class="m-label">Total Investment</div><div class="m-value">${fmt(aggW.totalInvest)}</div><div class="m-sub">incl. ${fmt(totalAdSpend)} ads</div></div>
+    <div class="m-card green"><div class="m-label">Net Profit (w/ ads)</div><div class="m-value green">${fmt(aggW.totalProfit)}</div><div class="m-sub">${pct(aggW.margin)} margin</div></div>
+    <div class="m-card"><div class="m-label">Profit (no ads)</div><div class="m-value accent">${fmt(aggN.totalProfit)}</div><div class="m-sub">${pct(aggN.margin)} margin</div></div>
+    <div class="m-card amber"><div class="m-label">Total Ad Spend</div><div class="m-value amber">${fmt(totalAdSpend)}</div><div class="m-sub">across all SKUs</div></div>
+    <div class="m-card"><div class="m-label">Total Overhead</div><div class="m-value">${fmt(ovh)}</div><div class="m-sub">content+pkg+returns+other</div></div>
+  `;
+
+  // Charts
+  const ovhTotal = D.overhead.content+D.overhead.packaging+D.overhead.returns+D.overhead.other;
+  const totalAdTotal = rows.reduce((s,r)=>s+r.ad*r.qty,0);
+  const prodCostTotal = rows.reduce((s,r)=>s+r.prod*r.qty,0);
+
+  rebuildChart('overviewChart', {
+    type:'bar',
+    data:{
+      labels:['Investment','Revenue','Profit (no ads)','Profit (w/ ads)'],
+      datasets:[{
+        data:[aggW.totalInvest, aggW.totalRev, aggN.totalProfit, aggW.totalProfit],
+        backgroundColor:['#60A5FA','#4ADE80','#C4B5FD','#8B7CF6'],
+        borderWidth:0, borderRadius:6
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.y)}}},
+      scales:{x:{ticks:{color:'#8A8899',font:{size:11}},grid:{display:false}},y:{ticks:{callback:v=>(v/1000).toFixed(0)+'k ৳',color:'#8A8899'},grid:{color:'rgba(255,255,255,0.05)'}}}}
+  });
+
+  const costLabels = ['Product Cost','Content','Packaging','Returns','Other'];
+  const costData = [prodCostTotal, D.overhead.content, D.overhead.packaging, D.overhead.returns, D.overhead.other];
+  if(totalAdTotal>0){costLabels.push('Ad Spend');costData.push(totalAdTotal);}
+
+  rebuildChart('costChart',{
+    type:'doughnut',
+    data:{
+      labels:costLabels,
+      datasets:[{data:costData,backgroundColor:['#8B7CF6','#60A5FA','#4ADE80','#FBBF24','#F87171','#FB923C'],borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'bottom',labels:{color:'#8A8899',font:{size:10},boxWidth:10,padding:8}},
+      tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw)}}}}
+  });
+
+  rebuildChart('profitPerSkuChart',{
+    type:'bar',
+    data:{
+      labels:rows.map(r=>r.name),
+      datasets:[
+        {label:'Profit/pc (no ads)',data:rows.map(r=>r.profitNoAd),backgroundColor:'rgba(196,181,253,0.6)',borderWidth:0,borderRadius:4},
+        {label:'Profit/pc (w/ ads)',data:rows.map(r=>r.profitWithAd),backgroundColor:'#8B7CF6',borderWidth:0,borderRadius:4}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8A8899',font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y)}}},
+      scales:{x:{ticks:{color:'#8A8899'},grid:{display:false}},y:{ticks:{callback:v=>v.toLocaleString()+' ৳',color:'#8A8899'},grid:{color:'rgba(255,255,255,0.05)'}}}}
+  });
+}
+
+function renderSKU(rows, hasAds) {
+  const notice = document.getElementById('ad-notice');
+  if(hasAds){
+    const totalAd = rows.reduce((s,r)=>s+r.ad*r.qty,0);
+    notice.innerHTML = `⚠️ Ad costs included. Total ad spend: <strong>${fmt(totalAd)}</strong>. Profit figures below reflect post-ad margins.`;
+    notice.style.display='block';
+  } else {
+    notice.innerHTML = `ℹ️ No ad costs set. Go to <strong>Edit Numbers → Ad Cost/pc</strong> to add advertising spend per product.`;
+    notice.style.display='block';
+  }
+
+  const wrap = document.getElementById('sku-cards');
+  wrap.innerHTML = rows.map((r,i)=>{
+    const badgeClasses = ['pill-purple','pill-blue','pill-amber'];
+    return `
+    <div class="sku-card">
+      <div class="sku-name">${r.name} <span class="pill ${badgeClasses[i]}">${r.qty} pcs · ${Math.round(r.share*100)}%</span></div>
+      <div class="cost-line"><span class="cost-key">Product cost/pc</span><span class="cost-val">${fmt(r.prod)}</span></div>
+      <div class="cost-line"><span class="cost-key">Content/pc</span><span class="cost-val">${fmt(r.overheadPc*(D.overhead.content/(D.overhead.content+D.overhead.packaging+D.overhead.returns+D.overhead.other)))}</span></div>
+      <div class="cost-line"><span class="cost-key">Packaging/pc</span><span class="cost-val">${fmt(r.overheadPc*(D.overhead.packaging/(D.overhead.content+D.overhead.packaging+D.overhead.returns+D.overhead.other)))}</span></div>
+      <div class="cost-line"><span class="cost-key">Returns/pc</span><span class="cost-val">${fmt(r.overheadPc*(D.overhead.returns/(D.overhead.content+D.overhead.packaging+D.overhead.returns+D.overhead.other)))}</span></div>
+      <div class="cost-line"><span class="cost-key">Other/pc</span><span class="cost-val">${fmt(r.overheadPc*(D.overhead.other/(D.overhead.content+D.overhead.packaging+D.overhead.returns+D.overhead.other)))}</span></div>
+      ${r.ad>0?`<div class="cost-line" style="color:var(--amber)"><span class="cost-key" style="color:var(--amber)">Ad cost/pc</span><span class="cost-val" style="color:var(--amber)">${fmt(r.ad)}</span></div>`:''}
+      <div class="cost-total"><span>Total cost/pc</span><span class="val">${fmt(r.ad>0?r.totalCostWithAd:r.totalCostNoAd)}</span></div>
+      <div class="profit-section">
+        <div class="profit-line"><span>Sell price</span><span>${fmt(r.sell)}</span></div>
+        ${r.ad>0?`<div class="profit-line"><span>Profit/pc (no ads)</span><span>${fmt(r.profitNoAd)}</span></div>`:''}
+        <div class="profit-line"><span>${r.ad>0?'Profit/pc (w/ ads)':'Profit/pc'}</span><span class="green">${fmt(r.ad>0?r.profitWithAd:r.profitNoAd)}</span></div>
+        <div class="profit-line"><span>Total profit (${r.qty} pcs)</span><span class="green">${fmt(r.ad>0?r.totalProfitWithAd:r.totalProfitNoAd)}</span></div>
+      </div>
+      <div class="margin-bar-wrap">
+        <div class="margin-bar"><div class="margin-fill" style="width:${Math.max(0,r.ad>0?r.marginWithAd:r.marginNoAd)}%"></div></div>
+        <div class="margin-text">Margin: ${pct(r.ad>0?r.marginWithAd:r.marginNoAd)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Stacked chart
+  const ovhTotal = D.overhead.content+D.overhead.packaging+D.overhead.returns+D.overhead.other;
+  rebuildChart('stackedChart',{
+    type:'bar',
+    data:{
+      labels:rows.map(r=>r.name),
+      datasets:[
+        {label:'Product Cost',data:rows.map(r=>r.prod),backgroundColor:'#8B7CF6',borderWidth:0},
+        {label:'Content',data:rows.map(r=>r.overheadPc*(D.overhead.content/ovhTotal)),backgroundColor:'#60A5FA',borderWidth:0},
+        {label:'Packaging',data:rows.map(r=>r.overheadPc*(D.overhead.packaging/ovhTotal)),backgroundColor:'#4ADE80',borderWidth:0},
+        {label:'Returns',data:rows.map(r=>r.overheadPc*(D.overhead.returns/ovhTotal)),backgroundColor:'#FBBF24',borderWidth:0},
+        {label:'Other',data:rows.map(r=>r.overheadPc*(D.overhead.other/ovhTotal)),backgroundColor:'#F87171',borderWidth:0},
+        ...(rows.some(r=>r.ad>0)?[{label:'Ad Cost',data:rows.map(r=>r.ad),backgroundColor:'#FB923C',borderWidth:0}]:[])
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8A8899',font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y)}}},
+      scales:{x:{stacked:true,ticks:{color:'#8A8899'},grid:{display:false}},y:{stacked:true,ticks:{callback:v=>v.toLocaleString()+' ৳',color:'#8A8899'},grid:{color:'rgba(255,255,255,0.05)'}}}}
+  });
+}
+
+function renderSummary(rows, agg) {
+  const tbody = document.getElementById('summary-tbody');
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td><strong>${r.name}</strong></td>
+      <td>${r.qty}</td>
+      <td>${fmt(r.prod)}</td>
+      <td>${r.ad>0?`<span class="pill pill-amber">${fmt(r.ad)}</span>`:'<span class="pill pill-purple">—</span>'}</td>
+      <td>${fmt(r.overheadPc)}</td>
+      <td>${fmt(r.ad>0?r.totalCostWithAd:r.totalCostNoAd)}</td>
+      <td>${fmt(r.sell)}</td>
+      <td><span class="pill pill-green">${fmt(r.ad>0?r.profitWithAd:r.profitNoAd)}</span></td>
+      <td>${fmt(r.ad>0?r.totalProfitWithAd:r.totalProfitNoAd)}</td>
+      <td><span class="pill ${(r.ad>0?r.marginWithAd:r.marginNoAd)>40?'pill-green':'pill-amber'}">${pct(r.ad>0?r.marginWithAd:r.marginNoAd)}</span></td>
+    </tr>
+  `).join('') + `
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td>${rows.reduce((s,r)=>s+r.qty,0)}</td>
+      <td>—</td><td>—</td><td>—</td><td>—</td>
+      <td>${fmt(agg.totalRev)}</td>
+      <td>—</td>
+      <td><span class="pill pill-green">${fmt(agg.totalProfit)}</span></td>
+      <td><span class="pill pill-green">${pct(agg.margin)}</span></td>
+    </tr>
+  `;
+
+  rebuildChart('revDistChart',{
+    type:'pie',
+    data:{labels:rows.map(r=>r.name),datasets:[{data:rows.map(r=>r.revenue),backgroundColor:['#8B7CF6','#60A5FA','#4ADE80'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8A8899',font:{size:11}}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw)}}}}
+  });
+
+  const profits = rows.map(r=>r.ad>0?r.totalProfitWithAd:r.totalProfitNoAd);
+  rebuildChart('profitDistChart',{
+    type:'pie',
+    data:{labels:rows.map(r=>r.name),datasets:[{data:profits,backgroundColor:['#C4B5FD','#86EFAC','#FDE68A'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8A8899',font:{size:11}}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw)}}}}
+  });
+}
+
+function renderProjection(rows, aggW, aggN) {
+  const a = D.scenario==='noads' ? aggN : aggW;
+  const pm = document.getElementById('proj-metrics');
+  const avgSell = rows.reduce((s,r)=>s+r.sell*r.qty,0) / rows.reduce((s,r)=>s+r.qty,0);
+  const totalInvest = D.scenario==='noads' ? aggN.totalInvest : aggW.totalInvest;
+  const be = Math.ceil(totalInvest / avgSell);
+
+  pm.innerHTML = `
+    <div class="m-card blue"><div class="m-label">Avg. Sell Price</div><div class="m-value">${fmt(avgSell)}</div><div class="m-sub">blended across SKUs</div></div>
+    <div class="m-card"><div class="m-label">Break-Even Units</div><div class="m-value accent">${be} pcs</div><div class="m-sub">${D.scenario==='noads'?'no ad scenario':'with ad scenario'}</div></div>
+    <div class="m-card green"><div class="m-label">Total Profit</div><div class="m-value green">${fmt(a.totalProfit)}</div><div class="m-sub">${pct(a.margin)} margin</div></div>
+    <div class="m-card amber"><div class="m-label">ROI</div><div class="m-value amber">${pct(a.totalProfit/a.totalInvest*100)}</div><div class="m-sub">return on investment</div></div>
+  `;
+
+  rebuildChart('scenarioChart',{
+    type:'bar',
+    data:{
+      labels:['Investment','Revenue','Profit'],
+      datasets:[
+        {label:'Without Ads',data:[aggN.totalInvest,aggN.totalRev,aggN.totalProfit],backgroundColor:'rgba(74,222,128,0.6)',borderWidth:0,borderRadius:5},
+        {label:'With Ads',data:[aggW.totalInvest,aggW.totalRev,aggW.totalProfit],backgroundColor:'rgba(96,165,250,0.7)',borderWidth:0,borderRadius:5}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8A8899'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y)}}},
+      scales:{x:{ticks:{color:'#8A8899'},grid:{display:false}},y:{ticks:{callback:v=>(v/1000).toFixed(0)+'k ৳',color:'#8A8899'},grid:{color:'rgba(255,255,255,0.05)'}}}}
+  });
+
+  const tbody = document.getElementById('beTable');
+  tbody.innerHTML='';
+  const totalUnits = rows.reduce((s,r)=>s+r.qty,0);
+  const steps = [];
+  for(let u=10;u<=totalUnits+10;u+=10) steps.push(u);
+
+  steps.forEach(u=>{
+    const rev = Math.round(u * avgSell);
+    const profit = rev - totalInvest;
+    const isBE = Math.abs(u-be)<=5;
+    const tr = document.createElement('tr');
+    if(isBE) tr.style.background='rgba(139,124,246,0.1)';
+    tr.innerHTML = `<td style="font-weight:${isBE?600:400}">${u} pcs${isBE?' ← break-even':''}</td>
+      <td>${fmt(rev)}</td>
+      <td>${fmt(totalInvest)}</td>
+      <td style="color:${profit>=0?'var(--green)':'var(--red)'};font-weight:500">${profit>=0?'+':''}${fmt(profit)}</td>
+      <td><span class="pill ${profit>=0?'pill-green':'pill-red'}">${profit>=0?'Profit':'Loss'}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ───────────────────────── HELPERS ───────────────────────── */
+function rebuildChart(id, config) {
+  if(charts[id]) { charts[id].destroy(); }
+  const canvas = document.getElementById(id);
+  if(!canvas) return;
+  Chart.defaults.color = '#8A8899';
+  charts[id] = new Chart(canvas, config);
+}
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setScenario(s, btn) {
+  D.scenario = s;
+  document.querySelectorAll('.s-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const rows = compute();
+  const aggW = getAgg(rows, true);
+  const aggN = getAgg(rows, false);
+  renderProjection(rows, aggW, aggN);
+}
+
+function applySettings() {
+  D.skus = [0,1,2].map(i=>({
+    name: ['Bifold Wallet','Trifold Wallet','Long Wallet'][i],
+    qty: +document.getElementById('s-qty-'+i).value || 0,
+    prod: +document.getElementById('s-prod-'+i).value || 0,
+    sell: +document.getElementById('s-sell-'+i).value || 0,
+    ad: +document.getElementById('s-ad-'+i).value || 0,
+  }));
+  D.overhead = {
+    content: +document.getElementById('s-content').value||0,
+    packaging: +document.getElementById('s-packaging').value||0,
+    returns: +document.getElementById('s-returns').value||0,
+    other: +document.getElementById('s-other').value||0,
+  };
+  renderAll();
+
+  // Flash feedback
+  const btn = document.querySelector('.apply-btn');
+  btn.innerHTML = '<span>✓</span> Updated!';
+  btn.style.background = 'linear-gradient(135deg, #16A34A, #4ADE80)';
+  setTimeout(()=>{
+    btn.innerHTML='<span>✓</span> Recalculate Dashboard';
+    btn.style.background='';
+  }, 2000);
+}
+
+// Init
+renderAll();
+</script>
+</body>
+</html>
